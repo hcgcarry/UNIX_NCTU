@@ -1,6 +1,6 @@
-all:main
+all:hw1
 
 %:%.cpp
 	g++ $< -o $@ -g
 clean:
-	rm main
+	rm hw1
