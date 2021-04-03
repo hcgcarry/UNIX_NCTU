@@ -1,0 +1,15 @@
+
+compile:
+make
+
+execute:
+./hw1 
+
+./hw1 -t REG
+
+./hw1 -c sh
+
+./hw1 -f lib
+
+
+https://people.cs.nctu.edu.tw/~chuang/courses/unixprog/resources/hw1_lsof/
