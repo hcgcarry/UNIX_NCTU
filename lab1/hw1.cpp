@@ -1,5 +1,8 @@
 #include <iostream>
 #include <string>
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<fcntl.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <sys/stat.h>
@@ -101,7 +104,10 @@ public:
         regex re(str);
         for(auto iter = fileInfoList.begin();iter!=fileInfoList.end();){
             smatch sm;
-            if(!regex_search(iter->NAME,sm,re)){
+            stringstream ss(iter->NAME);
+            string nameWithoutErrorMess ;
+            ss >> nameWithoutErrorMess;
+            if(!regex_search(nameWithoutErrorMess,sm,re)){
                 fileInfoList.erase(iter);
             }
             else iter++;
@@ -161,10 +167,10 @@ public:
         struct stat statBuf;
         if (stat(path.c_str(), &statBuf) < 0)
         {
-            #ifdef debug
-            cout << "path: " << path << endl;
-            perror("parseLink,stat error");
-            #endif
+            // file not exist
+            //如果這個path的根本就沒存取權限 那他只會permission denied,不會ENOENT
+            if(errno == ENOENT)
+            return;
         }
 
         char linkActualPath[100];
@@ -178,9 +184,13 @@ public:
         }
         linkActualPath[readlinkNameNum] = '\0';
         struct fileInfo item ;
-
+        string linkActualPathTmp = string(linkActualPath);
+        if(linkActualPathTmp.find("(deleted)") !=linkActualPathTmp.npos){
+                fileInfoList.push_back( getFileInfoObj(fileName, "unknown", to_string(statBuf.st_ino),linkActualPathTmp ));
+                return;
+        }
         if(access(path.c_str(),R_OK)<0){
-                fileInfoList.push_back( getFileInfoObj(fileName, "unknown", "", path + " (readlink: Permission denied)"));
+                fileInfoList.push_back( getFileInfoObj(fileName, "unknown", "", path +" (readlink: Permission denied)"));
                 return;
         }
 
@@ -201,9 +211,9 @@ public:
         while (getline(mapsFile, line))
         {
             stringstream ss(line);
-            string region, permission, offset, dev, pathName;
+            string region, permission, offset, dev, pathName,errorMessage;
             int inode;
-            ss >> region >> permission >> offset >> dev >> inode >> pathName;
+            ss >> region >> permission >> offset >> dev >> inode >> pathName>>errorMessage;
             if (inode != 0 && inodeSet.find(inode) == inodeSet.end())
             {
                 inodeSet.insert(inode);
@@ -215,8 +225,9 @@ public:
                     perror("parseMem stat error");
                     #endif
                 }
-                if(pathName.find("(deleted)") != pathName.npos)
-                    fileInfoList.push_back(getFileInfoObj("del", findFileType(statBuf), to_string(inode), pathName+" (deleted)"));
+                if(errorMessage.find("deleted") != pathName.npos){
+                    fileInfoList.push_back(getFileInfoObj("del", "unknown", to_string(inode), pathName+" (deleted)"));
+                }
                 else
                     fileInfoList.push_back(getFileInfoObj("mem", findFileType(statBuf), to_string(inode), pathName));
             }
@@ -228,7 +239,7 @@ public:
         //cout << "parseFD-----------------------" << endl;
         string path = "/proc/" + to_string(pid) + "/fd";
         if(access(path.c_str(), R_OK)<0 ){
-            fileInfoList.push_back(getFileInfoObj("NOFD", "", "" , path+" (opendir: Permission denied)"));
+            fileInfoList.push_back(getFileInfoObj("NOFD", "", "" , path+ " (opendir: Permission denied)"));
             return;
         }
 
@@ -255,14 +266,21 @@ public:
                 #endif
             }
             string fileNamePostFix;
-            if ((S_IRUSR & statBuf.st_mode ) && (S_IWUSR & statBuf.st_mode ))
+            ifstream fdinfo("/proc/"+to_string(pid)+"/fdinfo/"+dirp->d_name);
+            string readWriteMode;
+            fdinfo >> readWriteMode;
+            fdinfo >> readWriteMode;
+            fdinfo >> readWriteMode;
+            fdinfo >> readWriteMode;
+            int flag = stoi(readWriteMode,0,8);
+            if (flag%4 == 0 ) 
             {
-                fileNamePostFix = "u";
-            }
-            else if (S_IRUSR & statBuf.st_mode)
                 fileNamePostFix = "r";
-            else
+            }
+            else if (flag & O_WRONLY)
                 fileNamePostFix = "w";
+            else
+                fileNamePostFix = "u";
 
             parseLink(curPath, dirp->d_name + fileNamePostFix, fileInfoList);
         }
