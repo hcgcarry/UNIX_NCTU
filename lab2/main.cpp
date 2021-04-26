@@ -17,6 +17,7 @@ public:
     }
     string getExePath(){
         if(argc < 2 ){
+            printf("no command given.\n");
             exit(0);
         }
         return string(*cmdArgs);
@@ -25,7 +26,7 @@ public:
     {
 
         int o;
-        const char *optstr = "c:t:f:";
+        const char *optstr = "o:p:";
         while ((o = getopt(argc, argv, optstr)) != -1)
         {
             switch (o)
@@ -39,7 +40,7 @@ public:
                 arg_p_value = string(optarg);
                 break;
             default: 
-               cout <<"usage: ./logger [-o file] [-p sopath] [--] cmd [cmd args ...]" <<endl;
+              cout <<"usage: ./logger [-o file] [-p sopath] [--] cmd [cmd args ...]" <<endl;
                 cout <<"-p: set the path to logger.so, default = ./logger.so"<<endl;
                 cout <<"-o: print output to file, print to \"stderr\" if no file specified"<<endl;
                 cout <<"--: separate the arguments for logger and for the command "<<endl;
@@ -70,9 +71,9 @@ class inject{
         execvp(argsClassObj.getExePath().c_str(),argsClassObj.cmdArgs);
     }
     void printInfo(){
-        cout << "soPath:" <<  argsClassObj.getSoPath() << endl;
-        cout << "exePath: " << argsClassObj.getExePath() << endl;
-        cout << "outputFile:" << argsClassObj.arg_o_value << endl;
+        printf("soPath: %s\n",argsClassObj.getSoPath().c_str());
+        printf("exePath: %s\n",argsClassObj.getExePath().c_str());
+        printf("outputFile: %s\n",argsClassObj.arg_o_value.c_str());
     }
 
 };

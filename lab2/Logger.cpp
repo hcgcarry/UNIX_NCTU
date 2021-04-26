@@ -15,13 +15,17 @@ public:
     void push_arg(const string &argType, T &arg)
     {
         argList.push_back(handleArg(argType, arg));
+        #ifdef debug
         printf("push_arg:type: %s process_result: %s\n", argType.c_str() , argList.back().c_str() );
+        #endif
     }
     template <typename T>
     void push_ret(string argType, T arg)
     {
         this->returnValue = handleRet(argType, arg);
+        #ifdef debug
         printf("push_ret:type: %s process_result: %s\n", argType.c_str() ,returnValue.c_str());
+        #endif
     }
     void printLog()
     {
@@ -39,7 +43,9 @@ public:
     string handleArg(string argType, const char *arg)
     {
         //cout << "----- handleArg "<< argType << " const char*"<< endl;
+        #ifdef debug
         printf("----- handleArg argtype:%s const char*\n",argType.c_str());
+        #endif
 
         char buf[1024];
         string result;
@@ -47,8 +53,9 @@ public:
         {
             if (realpath(arg, buf) == NULL)
             {
-                return string(arg);
+                result = string(arg);
             }
+            else
             result = string(buf);
         }
         else
@@ -68,9 +75,10 @@ public:
     }
     string handleArg(string argType, FILE *arg)
     {
+        #ifdef debug
         printf("----- handleArg argtype:%s FILE*\n",argType.c_str());
+        #endif
         int fd = fileno(arg);
-        printf("fd %d\n",fd);
         string fileFDPath = "/proc/self/fd/" + to_string(fd);
         char buf[1024];
         int readSize;
@@ -91,7 +99,9 @@ public:
     string handleArg(string argType, unsigned int arg)
     {
         ///cout << "----- handleArg "<< argType <<" unsigned int "<< endl;
+        #ifdef debug
         printf("---- handleArg %s arg:%u\n",argType.c_str(),arg);
+        #endif
         string result;
         if (argType == "mode_t")
         {
@@ -107,50 +117,81 @@ public:
     }
     string handleArg(string argType, int arg)
     {
+        #ifdef debug
         printf("----- handleArg argtype:%s int*\n",argType.c_str());
+        #endif
+        
+        if(argType == "FLAG"){
+            char buf[1024];
+            sprintf(buf, "%o", arg);
+            return string(buf);
+        }
         return to_string(arg);
     }
 
     string handleArg(string argType, const void *arg)
     {
+        #ifdef debug
         printf("----- handleArg argtype:%s const void*\n",argType.c_str());
-        char buf[10];
-        sprintf(buf, "%p", arg);
-        return string(buf);
+        #endif
+        char* arg2 = (char*) arg;
+        char buf[100];
+        int i = 0;
+        for (i = 0; arg2[i] && i < 32; i++)
+        {
+            if (isprint(arg2[i]))
+                buf[i] = arg2[i];
+            else
+                buf[i] = '.';
+        }
+        buf[i] = '\0';
+        return  "\""+string(buf)+"\"";
     }
     string handleArg(string argType,unsigned long arg)
     {
         //cout << "----- handleRet "<< argType <<" int"<< endl;
+        #ifdef debug
         printf("----- handleArg argtype:%s unsigned long*\n",argType.c_str());
+        #endif
         return to_string(arg);
     }
     string handleArg(string argType,long arg)
     {
         //cout << "----- handleRet "<< argType <<" int"<< endl;
+        #ifdef debug
         printf("----- handleArg argtype:%s long*\n",argType.c_str());
+        #endif
         return to_string(arg);
     }
     string handleRet(string argType,long arg)
     {
+        #ifdef debug
         printf("----- handleRet argtype:%s long*\n",argType.c_str());
+        #endif
         return to_string(arg);
     }
     string handleRet(string argType, int arg)
     {
+        #ifdef debug
         printf("----- handleRet argtype:%s int*\n",argType.c_str());
+        #endif
         //cout << "----- handleRet "<< argType <<" int"<< endl;
         return to_string(arg);
     }
     string handleRet(string argType,unsigned long arg)
     {
+        #ifdef debug
         printf("----- handleRet argtype:%s unsigned long*\n",argType.c_str());
+        #endif
         //cout << "----- handleRet "<< argType <<" int"<< endl;
         return to_string(arg);
     }
 
     string handleRet(string argType, const void *arg)
     {
+        #ifdef debug
         printf("----- handleRet argtype:%s const void*\n",argType.c_str());
+        #endif
         //cout << "----- handleRet "<< argType << " const void*"<< endl;
         char buf[15];
         sprintf(buf, "%p", arg);

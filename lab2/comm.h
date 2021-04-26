@@ -18,4 +18,5 @@
 #include<errno.h>
 
 typedef const char* filePath;
+typedef int FLAG;
 using namespace std;
