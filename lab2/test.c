@@ -32,17 +32,17 @@ int main(void){
 
     printf("-----test4.txt\n");
     creat("test4.txt",S_IRUSR);
-    chmod("test4.txt",S_ISUID);
+    chmod("test4.txt",S_IWUSR);
 
     printf("-----test5.txt\n");
-    creat("test5.txt",S_IRUSR);
+    creat("test5.txt",S_IWUSR);
     remove("test5.txt");
 
 
     printf("-----test6.txt\n");
     creat("test6.txt",S_IRUSR);
     rename("test6.txt","test7.txt");
-
+    chown("test7.txt",getuid(),-1 );
     tmpfile();
 
     

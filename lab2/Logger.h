@@ -15,6 +15,8 @@ public:
     void cleanup();
     Logger(const char* func_name);
     //template<typename T>
+    FILE *set_outputFile();
+    void close_outputFile(FILE *outputFile) ;
     template <typename T>
     void push_arg(const string &argType, T &arg)
     {

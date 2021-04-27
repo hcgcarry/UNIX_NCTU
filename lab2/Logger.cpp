@@ -1,41 +1,23 @@
 #include "Logger.h"
-FILE* outputFile=stderr;
-int first=1;
 
-char *mygetenv(const char *name) {
-    if(name == NULL || environ == NULL)
-        return NULL;
-    int len = strlen(name);
-    for(char **p = environ ; *p ; ++p) {
-        if(!strncmp(name, *p, len) && (*p)[len] == '=')
-            return *p + len + 1;
-    }
-    return NULL;
-}
-void *load_sym(const char *sym) {
-    void *handler = dlopen("libc.so.6", RTLD_LAZY);
-    void *res = dlsym(handler, sym);
-    dlclose(handler);
-    return res;
-} 
-FILE *get_output_fd() {
-    static char output_path[PATH_MAX];
+FILE *Logger::set_outputFile() {
+    //把這個static 丟到 class的member也不行 不知道為甚麼
     static int first = 1;
-    const char *env_output_path = mygetenv("MONITOR_OUTPUT");
-    static char (*old_getcwd)(char*, size_t) = NULL;
-    static FILE*(*old_fopen)(const char*, const char*) = NULL;
-    if(env_output_path && strcmp(env_output_path, "stderr")) {
+    static char output_path[4096];
+    const char *output_file_name = getenv("OUTPUT_FILE");
+    if(output_file_name && strcmp(output_file_name, "stderr")) {
+        //if(first){} 這邊加了可以防止 ./logger -o output -- bash segmentation fault
         if(first) {
-            if(env_output_path[0] == '/') {
-                strcpy(output_path, env_output_path);
+            if(output_file_name[0] == '/') {
+                strcpy(output_path, output_file_name);
             } else {
-                if(!old_getcwd)old_getcwd = (char(*)(char*, size_t))load_sym("getcwd"); 
-                old_getcwd(output_path, PATH_MAX);
+                //if(!old_getcwd)old_getcwd = (char(*)(char*, size_t))get_origin_func("getcwd"); 
+                getcwd(output_path, 4096);
                 strcat(output_path, "/");
-                strcat(output_path, env_output_path);
+                strcat(output_path, output_file_name);
             }
         }
-        if(!old_fopen)old_fopen= (FILE*(*)(const char*,const char*))load_sym("fopen"); 
+        FILE*(*old_fopen)(const char*, const char*) = (FILE*(*)(const char*,const char*))get_origin_func("fopen"); 
         FILE *res = old_fopen(output_path, "a");
         first = 0;
         return res;
@@ -44,10 +26,9 @@ FILE *get_output_fd() {
     }
 }
 
-void close_output_fd(FILE *fd) {
-    static int(*old_fclose)(FILE*) = NULL;
-    if(!old_fclose)old_fclose= (int(*)(FILE*))load_sym("fclose"); 
-    if(fd != stderr) old_fclose(fd);
+void Logger::close_outputFile(FILE *outputFile) {
+    int(*old_fclose)(FILE*) = (int(*)(FILE*))get_origin_func("fclose"); 
+    if(outputFile != stderr) old_fclose(outputFile);
 }
 
 void *Logger::get_origin_func(string func_name)
@@ -59,39 +40,16 @@ void *Logger::get_origin_func(string func_name)
     {
         if ((originFunc = dlsym(handler, func_name.c_str())) == NULL)
         {
-            printf("dlsym error");
+            // printf("dlsym error");
         }
         dlclose(handler);
     }
     else
     {
-        printf("dlopen error\n");
+        // printf("dlopen error\n");
     }
     return originFunc;
 }
-/*
-    void setupOutputFile(){
-        printf("------initianl outpufile ----\n");
-        if(Logger::outputFile !=NULL)
-        printf("before outputfile fileno %d\n",fileno(Logger::outputFile));
-        if(Logger::first){
-            char* outputFileName = getenv("OUTPUT_FILE");
-            Logger::outputFile =stderr;
-            printf("constructor\n");
-            printf("outputfilename %s\n",outputFileName);
-            if(outputFileName != NULL){
-                FILE* (*origin_fopen)(const char*,const char*) =(FILE*(*)(const char*,const char*)) get_origin_func("fopen");
-                printf("func address %p",origin_fopen);
-                Logger::outputFile = origin_fopen(outputFileName,"a");
-                printf("after outputfile fileno %d\n",fileno(Logger::outputFile));
-            }
-            printf("Logger::first %d\n",Logger::first);
-            Logger::first = 0;
-            printf("Logger::first %d\n",Logger::first);
-        }
-        printf("------end initianl outpufile ----\n");
-    }
-    */
    string myReadLink(int fd){
        char buf[1024];
        string path  = "/proc/self/fd/" + to_string(fd);
@@ -99,55 +57,6 @@ void *Logger::get_origin_func(string func_name)
        buf[n]= '\0';
        return string(buf);
    }
-   void printCurFileInfo(){
-        if(outputFile !=NULL){
-            string filename = myReadLink(fileno(outputFile));
-            printf("---outputfile fileno %d filename %s first%d\n",fileno(outputFile),filename.c_str(),first);
-        }
-        else{
-            printf("!!!!!!!!!!!!!!--outputfile is NULL");
-        }
-   }
-void Logger::setupOutputFile()
-{
-    printf("------initial outpufile ----\n");
-    //outputFile = stderr;
-    char *outputFileName = getenv("MONITOR_OUTPUT");
-     printf("before setup\n");
-     printCurFileInfo();
-    if((first || outputFile == stderr || outputFile == NULL)){
-        if (outputFileName != NULL)
-        {
-            FILE *(*origin_fopen)(const char *, const char *) = (FILE * (*)(const char *, const char *)) get_origin_func("fopen");
-            printf("func address %p",origin_fopen);
-            outputFile = origin_fopen(outputFileName, "a");
-        }
-        else{
-            outputFile = stderr;
-        }
-        first = 0;
-    }
-     printf("after setup\n");
-     printCurFileInfo();
-     printf("------end initianl outpufile ----\n");
-}
-
-void Logger::cleanup()
-{
-    printf("---- before cleanup\n");
-     printCurFileInfo();
-    if (outputFile != stderr)
-    {
-        printf("!!!!!!close the file\n");
-        int (*origin_fclose)(FILE *) = (int (*)(FILE *))get_origin_func("fclose");
-        if(origin_fclose(outputFile) <0){
-            perror("origin_fclose fail");
-        }
-        outputFile = stderr;
-    }
-    printf("---- after cleanup\n");
-     printCurFileInfo();
-}
 Logger::Logger(const char *func_name) : func_name(string(func_name))
 {
     //setupOutputFile();
@@ -157,7 +66,7 @@ void Logger::printLog()
 {
 
     //setupOutputFile();
-    FILE *output_fd = get_output_fd();
+    FILE *output_fd = set_outputFile();
     string output = "[logger] " + func_name + "(";
 
     for (int i = 0; i < argList.size(); i++)
@@ -166,12 +75,9 @@ void Logger::printLog()
     }
     output += ") = ";
     output += returnValue + "\n";
-    //fprintf(stderr,"%s",output.c_str()) ;
-    //kfprintf(stderr,"fjdkffjfjkfkdsfkjdsdd") ;
-    ///fprintf(outputFile, "%s", output.c_str());
     fprintf(output_fd, "%s", output.c_str());
-    fflush(output_fd);
-    close_output_fd(output_fd);
+    //fflush(output_fd);
+    close_outputFile(output_fd);
     //cleanup();
 }
 // handle argument
@@ -219,8 +125,8 @@ string Logger::handleArg(string argType, FILE *arg)
     int readSize;
     if ((readSize = readlink(fileFDPath.c_str(), buf, sizeof(buf))) < 0)
     {
-        printf("filepath:%s\n", fileFDPath.c_str());
-        perror("FILE readlink error");
+        // printf("filepath:%s\n", fileFDPath.c_str());
+        // perror("FILE readlink error");
     }
     buf[readSize] = '\0';
     char buf2[1024];
@@ -273,8 +179,8 @@ string Logger::handleArg(string argType, int arg)
         int readSize;
         if ((readSize = readlink(fileFDPath.c_str(), buf, sizeof(buf))) < 0)
         {
-            printf("filepath:%s\n", fileFDPath.c_str());
-            perror("FD close readlink error");
+            // printf("filepath:%s\n", fileFDPath.c_str());
+            // perror("FD close readlink error");
         }
         buf[readSize] = '\0';
         char buf2[4024];

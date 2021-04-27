@@ -1,7 +1,7 @@
 
 all:logger.so logger
 
-logger:main.cpp comm.h
+logger:hw2.cpp comm.h
 	g++ $< -o $@ -g 
 	
 logger.so:Logger.cpp hook.cpp marco.h comm.h Logger.h

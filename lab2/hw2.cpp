@@ -55,7 +55,7 @@ public:
     }
     void setOutputFile(){
         if(!arg_o) return;
-        setenv("MONITOR_OUTPUT",arg_o_value.c_str(),1);
+        setenv("OUTPUT_FILE",arg_o_value.c_str(),1);
     }
     
 };
