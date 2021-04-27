@@ -5,6 +5,30 @@ make
 提示:
 ./logger
 
+## simple output
+```
+$ ./logger ./sample  
+[logger] creat("/home/ta/hw2/tmp/aaaa", 600) = 3
+[logger] chmod("/home/ta/hw2/tmp/aaaa", 666) = 0
+[logger] chown("/home/ta/hw2/tmp/aaaa", 65534, 65534) = -1
+[logger] rename("/home/ta/hw2/tmp/aaaa", "/home/ta/hw2/tmp/bbbb") = 0
+[logger] open("/home/ta/hw2/tmp/bbbb", 1101, 666) = 4
+[logger] write("/home/ta/hw2/tmp/bbbb", "cccc", 5) = 5
+[logger] close("/home/ta/hw2/tmp/bbbb") = 0
+[logger] open("/home/ta/hw2/tmp/bbbb", 0, 0) = 4
+[logger] read("/home/ta/hw2/tmp/bbbb", "cccc", 100) = 5
+[logger] close("/home/ta/hw2/tmp/bbbb") = 0
+[logger] tmpfile() = "/tmp/#14027789 (deleted)"
+[logger] fwrite("cccc", 1, 5, "/tmp/#14027789 (deleted)") = 5
+[logger] fclose("/tmp/#14027789 (deleted)") = 0
+[logger] fopen("/home/ta/hw2/tmp/bbbb", "r") = 0x558d89401260
+[logger] fread("cccc", 1, 100, "/home/ta/hw2/tmp/bbbb") = 5
+[logger] fclose("/home/ta/hw2/tmp/bbbb") = 0
+[logger] remove("/home/ta/hw2/tmp/bbbb") = 0
+sample done.
+[logger] write("/dev/pts/7", "sample done.  
+", 14) = 14
+```
 
 ## Monitored file access activities
 The list of monitored library calls is shown below. It covers several functions we have introduced in the class.
