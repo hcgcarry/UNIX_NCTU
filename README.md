@@ -24,7 +24,7 @@ Output strings should be quoted with double-quotes.
 
 ## Hints
 When implementing your homework, you may inspect symbols used by an executable. We have mentioned that you are not able to see any symbol if the symbols were stripped using strip command. However, you may consider working with readelf command. For example, we can check the symbols that are unknown to the binary:
-
+```
 $ nm /usr/bin/wget
 nm: /usr/bin/wget: no symbols
 $ readelf --syms /usr/bin/wget | grep open
@@ -34,4 +34,5 @@ $ readelf --syms /usr/bin/wget | grep open
    107: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND fdopen@GLIBC_2.2.5 (2)
    119: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND open64@GLIBC_2.2.5 (2)
    201: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND fopen64@GLIBC_2.2.5 (2)
+  ```
 Alternatively, you may consider using nm -D to read symbols. Basically, we have two different symbol tables. One is the regular symbol table, and the other is the dynamic symbol table. The one removed by strip is the regular symbol table. So you will need to work with nm -D or readelf --syms to read the dynamic symbol table.
