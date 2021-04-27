@@ -5,7 +5,7 @@ class argsClass
 
 public:
     bool arg_o = false;
-    string arg_o_value;
+    string arg_o_value ="stderr";
     bool arg_p = false;
     string arg_p_value;
     char ** cmdArgs;
@@ -41,9 +41,9 @@ public:
                 break;
             default: 
               cout <<"usage: ./logger [-o file] [-p sopath] [--] cmd [cmd args ...]" <<endl;
-                cout <<"-p: set the path to logger.so, default = ./logger.so"<<endl;
-                cout <<"-o: print output to file, print to \"stderr\" if no file specified"<<endl;
-                cout <<"--: separate the arguments for logger and for the command "<<endl;
+                cout <<"    -p: set the path to logger.so, default = ./logger.so"<<endl;
+                cout <<"    -o: print output to file, print to \"stderr\" if no file specified"<<endl;
+                cout <<"    --: separate the arguments for logger and for the command "<<endl;
                 exit(0);
             }
         }
@@ -55,7 +55,7 @@ public:
     }
     void setOutputFile(){
         if(!arg_o) return;
-        setenv("OUTPUT_FILE",arg_o_value.c_str(),1);
+        setenv("MONITOR_OUTPUT",arg_o_value.c_str(),1);
     }
     
 };
@@ -66,7 +66,7 @@ class inject{
     inject(int argc,char** argv):argsClassObj(argc,argv){
     }
     void run(){
-        printInfo();
+        //printInfo();
         setenv("LD_PRELOAD",argsClassObj.getSoPath().c_str(),1);
         execvp(argsClassObj.getExePath().c_str(),argsClassObj.cmdArgs);
     }

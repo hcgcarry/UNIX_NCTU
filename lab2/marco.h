@@ -1,5 +1,5 @@
 #include "comm.h"
-#include "Logger.cpp"
+#include "Logger.h"
 #include <stdarg.h> 
 #define ORIGIN_FUNC(return_type, func_name, param_type, param_name)             \
     {                                                                           \
@@ -129,6 +129,7 @@
             va_start(va,arg2);\
             arg3_type arg3 = va_arg(va,arg3_type);\
             ORIGIN_FUNC(return_type, func_name, (arg1_type, arg2_type, arg3_type), (arg1, arg2, arg3)); \
+            va_end(va);\
             loggerObj.push_arg(#arg1_type, arg1);                                                       \
             loggerObj.push_arg(#arg2_type, arg2);                                                       \
             loggerObj.push_arg(#arg3_type, arg3);                                                       \

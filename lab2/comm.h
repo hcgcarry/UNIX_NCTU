@@ -19,4 +19,5 @@
 
 typedef const char* filePath;
 typedef int FLAG;
+typedef int FD;
 using namespace std;

@@ -4,7 +4,7 @@ all:logger.so logger
 logger:main.cpp comm.h
 	g++ $< -o $@ -g 
 	
-logger.so:Logger.cpp hook.cpp marco.h comm.h
+logger.so:Logger.cpp hook.cpp marco.h comm.h Logger.h
 	g++ $^ -o $@ -shared -fPIC -g -ldl
 
 test:test.c
