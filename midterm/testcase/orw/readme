@@ -1,0 +1,8 @@
+The FLAG file is storead in $HOME/chals/orw/FLAG. Could you please read it out for me?
+
+Implement orw() function in a shared object.
+The function can be used to read the flag and and dump its content to stdout (descriptor 1).
+
+The prototype for your implemented function should be `void orw()`
+
+Files: $HOME/chals/orw

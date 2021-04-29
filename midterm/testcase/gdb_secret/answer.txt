@@ -1,0 +1,9 @@
+method 1:
+$ gdb gdb_secret
+
+b 28
+print (r=0)
+n
+method 2:
+print readflag(0)
+

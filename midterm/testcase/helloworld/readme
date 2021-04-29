@@ -1,0 +1,14 @@
+Implement, load, and run your shared object!
+
+You have to implement helloworld() function in your shared object.
+
+Read the codes helloworld.c to see how `helloworld()` should be implemented.
+
+The prototype of the function is `int helloworld(char *buf, int bufsz)`
+
+Hints:
+> LOAD_SO(h, argv[1]) => h = dlopen(argv[1]);
+>
+> LOAD_SYM(f, h, "helloworld") => f = dlsym(h, "helloworld");
+
+Files: $HOME/chals/helloworld

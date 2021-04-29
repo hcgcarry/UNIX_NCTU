@@ -1,0 +1,5 @@
+Run `gdb_secret` and get the flag!
+
+Hint: You have to run it with a debugger
+
+Files: $HOME/chals/gdb_secret

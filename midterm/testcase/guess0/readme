@@ -1,0 +1,7 @@
+Run `guess0` and guess the number!
+
+Have fun!
+
+Hint: `LD_PRELOAD` is your friend
+
+Files: $HOME/chals/guess0
