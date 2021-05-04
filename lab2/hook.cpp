@@ -34,6 +34,7 @@ __attribute__((destructor)) static void cleanup(){
 
 extern "C"{
     MODIFY_FUNC_2ARG(0,FILE*,fopen,filePath,pathname,const char*,mode);
+    MODIFY_FUNC_2ARG(0,FILE*,fopen64,filePath,pathname,const char*,mode);
     MODIFY_FUNC_2ARG(0,int,chmod,filePath,pathname,mode_t,mode);
     MODIFY_FUNC_3ARG(1,int,chown,filePath,pathname,uid_t,owner,gid_t,group);
     MODIFY_FUNC_1ARG(1,int,close,FD,fd);
@@ -47,4 +48,5 @@ extern "C"{
     MODIFY_FUNC_0ARG(FILE*,tmpfile);
     MODIFY_FUNC_3ARG(0,ssize_t,write,FD,fd,const void*,buf,size_t,_count);
     MODIFY_FUNC_OPEN(0,int,open,const char*,pathname,FLAG,flag,mode_t,mode);
+    MODIFY_FUNC_OPEN(0,int,open64,const char*,pathname,FLAG,flag,mode_t,mode);
 };

@@ -1,6 +1,6 @@
 #include "comm.h"
 #include "Logger.h"
-#include <stdarg.h> 
+#include <stdarg.h>
 #define ORIGIN_FUNC(return_type, func_name, param_type, param_name)             \
     {                                                                           \
         return_type(*originFunc) param_type = NULL;                             \
@@ -118,29 +118,28 @@
         return result;                                                                                                             \
     }
 
-#define MODIFY_FUNC_OPEN(print_before,return_type, func_name, arg1_type, arg1, arg2_type, arg2, arg3_type, arg3)     \
-    return_type func_name(arg1_type arg1, arg2_type arg2, ...)                                          \
-    {                                                                                                   \
-        return_type result;                                                                             \
-        Logger loggerObj(#func_name);                                                                   \
-        if (arg2 & O_CREAT)                                                                             \
-        {                                                                                               \
-            va_list va;\
-            va_start(va,arg2);\
-            arg3_type arg3 = va_arg(va,arg3_type);\
-            ORIGIN_FUNC(return_type, func_name, (arg1_type, arg2_type, arg3_type), (arg1, arg2, arg3)); \
-            va_end(va);\
-            loggerObj.push_arg(#arg1_type, arg1);                                                       \
-            loggerObj.push_arg(#arg2_type, arg2);                                                       \
-            loggerObj.push_arg(#arg3_type, arg3);                                                       \
-        }                                                                                               \
-        else                                                                                            \
-        {                                                                                               \
-            ORIGIN_FUNC(return_type, func_name, (arg1_type, arg2_type), (arg1, arg2));                  \
-            loggerObj.push_arg(#arg1_type, arg1);                                                       \
-            loggerObj.push_arg(#arg2_type, arg2);                                                       \
-        }                                                                                               \
-        loggerObj.push_ret(#return_type, result);                                                       \
-        loggerObj.printLog();                                                                           \
-        return result;                                                                                  \
+#define MODIFY_FUNC_OPEN(print_before, return_type, func_name, arg1_type, arg1, arg2_type, arg2, arg3_type, arg3) \
+    return_type func_name(arg1_type arg1, arg2_type arg2, ...)                                                    \
+    {                                                                                                             \
+        return_type result;                                                                                       \
+        Logger loggerObj("open");                                                                             \
+        arg3_type arg3;                                                                                           \
+        if (arg2 & O_CREAT)                                                                                       \
+        {                                                                                                         \
+            va_list va;                                                                                           \
+            va_start(va, arg2);                                                                                   \
+            arg3 = va_arg(va, arg3_type);                                                                         \
+            va_end(va);                                                                                           \
+        }                                                                                                         \
+         else                                                                                                   \
+        {                                                                                                         \
+             arg3 = 0;                                                                                           \
+        }                                                                                                         \
+        ORIGIN_FUNC(return_type, func_name, (arg1_type, arg2_type, arg3_type), (arg1, arg2, arg3));             \
+        loggerObj.push_arg(#arg1_type, arg1);                                                                     \
+        loggerObj.push_arg(#arg2_type, arg2);                                                                     \
+        loggerObj.push_arg(#arg3_type, arg3);                                                                     \
+        loggerObj.push_ret(#return_type, result);                                                                 \
+        loggerObj.printLog();                                                                                     \
+        return result;                                                                                            \
     }

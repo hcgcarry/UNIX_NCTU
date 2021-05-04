@@ -29,6 +29,7 @@ int main(void){
     int fd2 = open("test3.txt",O_WRONLY|O_CREAT, O_APPEND);
     close(fd2);
 
+    fd2 = open64("test3.txt",O_WRONLY|O_CREAT, O_APPEND);
 
     printf("-----test4.txt\n");
     creat("test4.txt",S_IRUSR);

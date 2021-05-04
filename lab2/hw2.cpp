@@ -5,7 +5,7 @@ class argsClass
 
 public:
     bool arg_o = false;
-    string arg_o_value ="stderr";
+    string arg_o_value;
     bool arg_p = false;
     string arg_p_value;
     char ** cmdArgs;
@@ -16,7 +16,7 @@ public:
         setOutputFile();
     }
     string getExePath(){
-        if(argc < 2 ){
+        if(*cmdArgs == NULL ){
             printf("no command given.\n");
             exit(0);
         }

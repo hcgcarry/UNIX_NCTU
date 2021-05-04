@@ -5,6 +5,7 @@ FILE *Logger::set_outputFile() {
     static int first = 1;
     static char output_path[4096];
     const char *output_file_name = getenv("OUTPUT_FILE");
+    static FILE* outputFile;
     if(output_file_name && strcmp(output_file_name, "stderr")) {
         //if(first){} 這邊加了可以防止 ./logger -o output -- bash segmentation fault
         if(first) {
@@ -16,19 +17,19 @@ FILE *Logger::set_outputFile() {
                 strcat(output_path, "/");
                 strcat(output_path, output_file_name);
             }
+            FILE*(*old_fopen)(const char*, const char*) = (FILE*(*)(const char*,const char*))get_origin_func("fopen"); 
+            outputFile= old_fopen(output_path, "w");
+            first = 0;
         }
-        FILE*(*old_fopen)(const char*, const char*) = (FILE*(*)(const char*,const char*))get_origin_func("fopen"); 
-        FILE *res = old_fopen(output_path, "a");
-        first = 0;
-        return res;
+        return outputFile;
     } else {
         return stderr;
     }
 }
 
 void Logger::close_outputFile(FILE *outputFile) {
-    int(*old_fclose)(FILE*) = (int(*)(FILE*))get_origin_func("fclose"); 
-    if(outputFile != stderr) old_fclose(outputFile);
+    //int(*old_fclose)(FILE*) = (int(*)(FILE*))get_origin_func("fclose"); 
+    //if(outputFile != stderr) old_fclose(outputFile);
 }
 
 void *Logger::get_origin_func(string func_name)
@@ -67,6 +68,9 @@ void Logger::printLog()
 
     //setupOutputFile();
     FILE *output_fd = set_outputFile();
+    if(func_name == "fopen64"){
+        func_name = "fopen";
+    }
     string output = "[logger] " + func_name + "(";
 
     for (int i = 0; i < argList.size(); i++)
