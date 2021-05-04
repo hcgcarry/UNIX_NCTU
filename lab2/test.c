@@ -15,6 +15,7 @@ int main(void){
 
     printf("-----test.txt\n");
     FILE* file = fopen("test.txt","r");
+    FILE* file2 = fopen64("test16.txt","r");
     fread(buf,1,sizeof(buf),file);
     fwrite(buf,1,strlen(buf),stdout);
     fclose(file);
@@ -29,10 +30,11 @@ int main(void){
     int fd2 = open("test3.txt",O_WRONLY|O_CREAT, O_APPEND);
     close(fd2);
 
-    fd2 = open64("test3.txt",O_WRONLY|O_CREAT, O_APPEND);
+    fd2 = open64("test11.txt",O_WRONLY|O_CREAT, O_APPEND);
 
     printf("-----test4.txt\n");
     creat("test4.txt",S_IRUSR);
+    creat64("test14.txt",S_IRUSR);
     chmod("test4.txt",S_IWUSR);
 
     printf("-----test5.txt\n");
@@ -45,6 +47,7 @@ int main(void){
     rename("test6.txt","test7.txt");
     chown("test7.txt",getuid(),-1 );
     tmpfile();
+    tmpfile64();
 
     
 }

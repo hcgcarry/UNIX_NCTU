@@ -1,5 +1,6 @@
 #include "Logger.h"
 
+// 這邊後來改良後沒用到
 FILE *Logger::set_outputFile() {
     //把這個static 丟到 class的member也不行 不知道為甚麼
     static int first = 1;
@@ -67,10 +68,7 @@ void Logger::printLog()
 {
 
     //setupOutputFile();
-    FILE *output_fd = set_outputFile();
-    if(func_name == "fopen64"){
-        func_name = "fopen";
-    }
+    //FILE *output_fd = set_outputFile();
     string output = "[logger] " + func_name + "(";
 
     for (int i = 0; i < argList.size(); i++)
@@ -79,9 +77,9 @@ void Logger::printLog()
     }
     output += ") = ";
     output += returnValue + "\n";
-    fprintf(output_fd, "%s", output.c_str());
+    dprintf(3 , "%s", output.c_str());
     //fflush(output_fd);
-    close_outputFile(output_fd);
+    //close_outputFile(output_fd);
     //cleanup();
 }
 // handle argument

@@ -7,7 +7,9 @@ logger:hw2.cpp comm.h
 logger.so:Logger.cpp hook.cpp marco.h comm.h Logger.h
 	g++ $^ -o $@ -shared -fPIC -g -ldl
 
-test:test.c
+%64:%.c
+	gcc $< -o $@ -g -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+%:%.c
 	gcc $< -o $@ -g 
 
 testcase:

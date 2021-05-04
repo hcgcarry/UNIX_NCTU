@@ -13,7 +13,6 @@ public:
     char **argv;
     argsClass(int argc,char** argv):argc(argc),argv(argv){
         getArgs();
-        setOutputFile();
     }
     string getExePath(){
         if(*cmdArgs == NULL ){
@@ -54,8 +53,13 @@ public:
         return arg_p_value;
     }
     void setOutputFile(){
-        if(!arg_o) return;
-        setenv("OUTPUT_FILE",arg_o_value.c_str(),1);
+        if(!arg_o) {
+            dup2(STDERR_FILENO,3);
+        }
+        else{
+            fopen(arg_o_value.c_str(),"w");
+        }
+        //setenv("OUTPUT_FILE",arg_o_value.c_str(),1);
     }
     
 };
@@ -67,6 +71,7 @@ class inject{
     }
     void run(){
         //printInfo();
+        argsClassObj.setOutputFile();
         setenv("LD_PRELOAD",argsClassObj.getSoPath().c_str(),1);
         execvp(argsClassObj.getExePath().c_str(),argsClassObj.cmdArgs);
     }

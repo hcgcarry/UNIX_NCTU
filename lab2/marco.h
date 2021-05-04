@@ -122,7 +122,7 @@
     return_type func_name(arg1_type arg1, arg2_type arg2, ...)                                                    \
     {                                                                                                             \
         return_type result;                                                                                       \
-        Logger loggerObj("open");                                                                             \
+        Logger loggerObj(#func_name);                                                                             \
         arg3_type arg3;                                                                                           \
         if (arg2 & O_CREAT)                                                                                       \
         {                                                                                                         \
