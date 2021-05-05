@@ -84,6 +84,7 @@
         ORIGIN_FUNC(return_type, func_name, (arg1_type, arg2_type, arg3_type), (arg1, arg2, arg3));               \
         if (!print_before)                                                                                        \
         {                                                                                                         \
+            if(#func_name == "read" || #func_name == "write") loggerObj.open_write_result = &result;\
             loggerObj.push_arg(#arg1_type, arg1);                                                                 \
             loggerObj.push_arg(#arg2_type, arg2);                                                                 \
             loggerObj.push_arg(#arg3_type, arg3);                                                                 \
@@ -108,6 +109,10 @@
         ORIGIN_FUNC(return_type, func_name, (arg1_type, arg2_type, arg3_type, arg4_type), (arg1, arg2, arg3, arg4));               \
         if (!print_before)                                                                                                         \
         {                                                                                                                          \
+            if(#func_name == "fwrite" || #func_name == "fread"){\
+                loggerObj.open_write_result = &result;\
+                loggerObj.fwrite_fread_size = arg2;\
+            }\
             loggerObj.push_arg(#arg1_type, arg1);                                                                                  \
             loggerObj.push_arg(#arg2_type, arg2);                                                                                  \
             loggerObj.push_arg(#arg3_type, arg3);                                                                                  \
@@ -124,7 +129,7 @@
         return_type result;                                                                                       \
         Logger loggerObj(#func_name);                                                                             \
         arg3_type arg3;                                                                                           \
-        if (arg2 & O_CREAT)                                                                                       \
+        if (arg2 & O_CREAT || arg2 & O_TMPFILE)                                                                                       \
         {                                                                                                         \
             va_list va;                                                                                           \
             va_start(va, arg2);                                                                                   \

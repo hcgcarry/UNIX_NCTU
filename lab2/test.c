@@ -9,15 +9,16 @@
 
 int main(void){
     //FILE* file = fopen("test.txt","r");
-    char buf[1024];
-    char filepath[1023] = "test.txt";
+    char buf[10];
+    char filepath[1023] = "3test.txt";
     char filepath2[1023] = "test2.txt";
 
     printf("-----test.txt\n");
     FILE* file = fopen("test.txt","r");
-    FILE* file2 = fopen64("test16.txt","r");
+    FILE* file2 = fopen64("test16.txt","w");
     fread(buf,1,sizeof(buf),file);
     fwrite(buf,1,strlen(buf),stdout);
+    fread(buf,2,3,file);
     fclose(file);
 
     printf("-----test2.txt\n");
@@ -45,7 +46,7 @@ int main(void){
     printf("-----test6.txt\n");
     creat("test6.txt",S_IRUSR);
     rename("test6.txt","test7.txt");
-    chown("test7.txt",getuid(),-1 );
+    chown("test7.txt",getuid(),1 );
     tmpfile();
     tmpfile64();
 

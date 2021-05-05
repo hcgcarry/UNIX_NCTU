@@ -53,7 +53,7 @@ void *Logger::get_origin_func(string func_name)
     return originFunc;
 }
    string myReadLink(int fd){
-       char buf[1024];
+       char buf[4096];
        string path  = "/proc/self/fd/" + to_string(fd);
        int n=readlink(path.c_str(),buf,sizeof(buf));
        buf[n]= '\0';
@@ -90,7 +90,7 @@ string Logger::handleArg(string argType, const char *arg)
     printf("----- handleArg argtype:%s const char*\n", argType.c_str());
 #endif
 
-    char buf[1024];
+    char buf[4096];
     string result;
     if (argType == "filePath")
     {
@@ -104,7 +104,7 @@ string Logger::handleArg(string argType, const char *arg)
     else
     {
         int i = 0;
-        for (i = 0; arg[i] && i < 32; i++)
+        for (i = 0;i < arg[i] && i < 32; i++)
         {
             if (isprint(arg[i]))
                 buf[i] = arg[i];
@@ -123,7 +123,7 @@ string Logger::handleArg(string argType, FILE *arg)
 #endif
     int fd = fileno(arg);
     string fileFDPath = "/proc/self/fd/" + to_string(fd);
-    char buf[1024];
+    char buf[4096];
     int readSize;
     if ((readSize = readlink(fileFDPath.c_str(), buf, sizeof(buf))) < 0)
     {
@@ -131,7 +131,7 @@ string Logger::handleArg(string argType, FILE *arg)
         // perror("FILE readlink error");
     }
     buf[readSize] = '\0';
-    char buf2[1024];
+    char buf2[4096];
     buf2[readSize] = '\0';
     if (realpath(buf, buf2) == NULL)
     {
@@ -151,7 +151,7 @@ string Logger::handleArg(string argType, unsigned int arg)
     string result;
     if (argType == "mode_t")
     {
-        char buf[1024];
+        char buf[4096];
         sprintf(buf, "%o", arg);
         result = string(buf);
     }
@@ -170,7 +170,7 @@ string Logger::handleArg(string argType, int arg)
 
     if (argType == "FLAG")
     {
-        char buf[1024];
+        char buf[4096];
         sprintf(buf, "%o", arg);
         return string(buf);
     }
@@ -204,9 +204,17 @@ string Logger::handleArg(string argType, const void *arg)
     fprintf(stderr, "----- handleArg argtype:%s const void*\n", argType.c_str());
 #endif
     const char *arg2 = (const char *)arg;
-    char buf[1024];
+    char buf[4096];
     int i = 0;
-    for (i = 0; arg2[i] && i < 32; i++)
+    //int numberOfByteToPrint =*((int*) open_write_result)*fwrite_fread_size;
+    int numberOfByteToPrint ;
+    if(func_name == "fread" || func_name == "fwrite" || func_name == "read" || func_name == "write"){
+        numberOfByteToPrint=*((int*) open_write_result)*fwrite_fread_size;
+    }
+    else{
+        numberOfByteToPrint =32;
+    }
+    for (i = 0;  i < numberOfByteToPrint && arg2[i] && i < 32; i++)
     {
         if (isprint(arg2[i]))
             buf[i] = arg2[i];
@@ -264,7 +272,7 @@ string Logger::handleRet(string argType, const void *arg)
     printf("----- handleRet argtype:%s const void*\n", argType.c_str());
 #endif
     //cout << "----- handleRet "<< argType << " const void*"<< endl;
-    char buf[1024];
+    char buf[4096];
     sprintf(buf, "%p", arg);
     return string(buf);
 }

@@ -10,6 +10,8 @@ public:
     //FILE *outputFile;
     string returnValue;
     string func_name;
+    void* open_write_result=NULL;
+    int fwrite_fread_size=1;
     void* get_origin_func(string func_name);
     void setupOutputFile();
     void cleanup();
