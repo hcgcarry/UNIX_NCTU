@@ -1,0 +1,9 @@
+mov eax,[0x600000]
+mov ebx,[0x600000]
+mov ecx,[0x600000]
+shl ecx,4
+shl eax,3
+shl ebx,1
+add [0x600004],eax
+add [0x600004],ebx
+add [0x600004],ecx

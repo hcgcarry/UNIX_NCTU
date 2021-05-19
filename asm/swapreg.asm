@@ -1,0 +1,3 @@
+xor RAX,RBX
+xor RBX,RAX
+xor RAX,RBX
