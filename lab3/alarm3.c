@@ -15,10 +15,13 @@ void alarmhandler(int s) {
 }
 
 int main() {
-	sigset_t s;
+	sigset_t s,old;
 	sigemptyset(&s);
+	sigemptyset(&old);
 	sigaddset(&s, SIGALRM);
-	sigprocmask(SIG_BLOCK, &s, NULL);
+
+	sigprocmask(SIG_BLOCK, &s, &old);
+	sigprocmask(SIG_SETMASK, &old, NULL) ;
 	//signal(SIGALRM, SIG_IGN);
 	if(signal(SIGALRM, alarmhandler)<0){
 		char m[] = "sigalrm signal failed.\n";

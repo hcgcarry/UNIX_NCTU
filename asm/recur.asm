@@ -2,9 +2,9 @@
 
 
 main:
-    mov rdi,27
+    mov rdi,29
     call r
-    ret
+    jmp exit
 
 
 
@@ -41,6 +41,7 @@ r:
     ret
 
     
+exit:
 done:
 
 

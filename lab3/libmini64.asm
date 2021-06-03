@@ -120,7 +120,9 @@ extern sigprocmask;
 global setjmp:function
 setjmp:
 	mov [rdi+0*8], rbx
+	add rsp,8
 	mov [rdi+1*8], rsp
+	sub rsp,8
 	mov [rdi+2*8], rbp
 	mov [rdi+3*8], r12
 	mov [rdi+4*8], r13
@@ -155,14 +157,15 @@ longjmp:
 	mov r15, [rdi + 6 * 8]
 	push rsi
 	push rdi
-	mov rdi, 2
 	lea rsi, [rdi+8*8]
+	mov rdi, 2
 	mov rdx, 0
 	mov rcx, 8
 	call sys_rt_sigprocmask
 	pop rdi
 	pop rsi
 	push qword [rdi+7*8]
+	mov rax,rsi
 	cmp rax,0
 	jne longjmpRet
 	mov rax,1

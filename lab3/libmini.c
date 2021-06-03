@@ -58,7 +58,7 @@ int	pause() {
 }
 
 int	nanosleep(struct timespec *rqtp, struct timespec *rmtp) {
-	long ret = nanosleep(rqtp, rmtp);
+	long ret = sys_nanosleep(rqtp, rmtp);
 	WRAPPER_RETval(int);
 }
 

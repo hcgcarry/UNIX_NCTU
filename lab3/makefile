@@ -1,4 +1,4 @@
-PROGS = alarm1 alarm2 alarm3 jmp1 libmini.so start.o
+PROGS = libmini.so start.o
 all: $(PROGS)
 
 libmini.so:libmini64.asm libmini.c
