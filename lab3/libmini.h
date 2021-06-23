@@ -130,6 +130,8 @@ extern long errno;
 #define SIGPROF		27
 #define SIGWINCH	28
 #define SIGIO		29
+#define SIGPWR      30
+#define SIGSYS      31
 #define SIGPOLL		SIGIO
 #define _NSIG      64
 #define _NSIG_BPW 64
@@ -180,20 +182,20 @@ typedef struct jmp_buf_s {
 } jmp_buf[1];
 
 /* Type of a signal handler.  */
-typedef void (*__sighandler_t) (int);
+typedef void (*sighandler_t) (int);
 typedef void (*__sigrestore_t) (int);
 
 struct sigaction {
-	__sighandler_t sa_handler;
+	sighandler_t sa_handler;
 	unsigned long sa_flags;
 	__sigrestore_t sa_restorer;
 	sigset_t sa_mask;		/* mask last for extensibility */
 };
 
 /* Fake signal functions.  */
-#define        SIG_ERR         ((__sighandler_t) -1)        /* Error return.  */
-#define        SIG_DFL         ((__sighandler_t)  0)        /* Default action.  */
-#define        SIG_IGN         ((__sighandler_t)  1)        /* Ignore signal.  *
+#define        SIG_ERR         ((sighandler_t) -1)        /* Error return.  */
+#define        SIG_DFL         ((sighandler_t)  0)        /* Default action.  */
+#define        SIG_IGN         ((sighandler_t)  1)        /* Ignore signal.  *
 /* system calls */
 long sys_read(int fd, char *buf, size_t count);
 long sys_write(int fd, const void *buf, size_t count);
@@ -290,7 +292,7 @@ int sigismember(const sigset_t *set, int signo);
 int sigpending(sigset_t *set);
 int sigprocmask(int how, const sigset_t *set, sigset_t *oldset);
 int sigaction(int how,struct sigaction *nact, struct sigaction *oact) ;
-__sighandler_t signal(int sig, __sighandler_t handler) ;
+sighandler_t signal(int sig, sighandler_t handler) ;
 
 int setjmp(jmp_buf env);
 void longjmp(jmp_buf env, int val);

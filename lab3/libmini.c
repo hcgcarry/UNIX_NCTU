@@ -282,7 +282,7 @@ int sigismember(const sigset_t *set, int signo){
 	return convertNumToMask(signo) & set->__val[0];
 }
 
-__sighandler_t signal(int sig, __sighandler_t handler) {
+sighandler_t signal(int sig, sighandler_t handler) {
     struct sigaction nact, oact;
     if (handler == SIG_ERR || sig <= 0 || sig >= _NSIG) {
         setErrorNumber(EINVAL);

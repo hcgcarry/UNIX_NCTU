@@ -1,2 +1,2 @@
 ## debug
-ptrace(cont) 之後要waitpid , 不然直接去用ptrace(peekuser) or ptrace(getregs) 會有找不到process的問題
+ptrace(cont) 之後要waitpid , 不然直接去用ptrace(peekuser) or ptrace(getregs) 會有No such process德問題

@@ -6,13 +6,95 @@
 #include<elf.h>
 #include <iomanip>
 
+class elfClass{
+    public:
+    long long entryPoint=-1;
+    long long textSectionAddress=-1;
+    long long textSectionSize=-1;
+    string filePath;
+    void init(string filePath){
+        this->filePath = filePath;
+    }
+    long long getTextSectionAddress(){
+        if(textSectionAddress == -1){
+            readSection();
+        }
+        return textSectionAddress;
+    }
+    long long getTextSectionSize(){
+        if(textSectionSize == -1){
+            readSection();
+        }
+        return textSectionSize;
+    }
+
+    long long readEntryPoint(){
+        ifstream in(filePath,ios::in | ios::binary);
+        Elf64_Ehdr ehdr;
+        in.read((char*)&ehdr,sizeof(Elf64_Ehdr));
+        in.close();
+        this->entryPoint = ehdr.e_entry;
+        return ehdr.e_entry;
+    }
+    
+
+
+    void readSection()
+    {
+            ifstream in(filePath,ios::in | ios::binary);
+            Elf64_Ehdr ehdr;
+
+            in.read((char*)&ehdr,sizeof(Elf64_Ehdr));
+
+           
+            int shnum, x;
+            /// read shdr
+            Elf64_Shdr *shdr = (Elf64_Shdr*)malloc(sizeof(Elf64_Shdr) * ehdr.e_shnum);
+            in.seekg(ehdr.e_shoff,ios::beg); 
+            in.read((char*)shdr, sizeof(Elf64_Shdr) * ehdr.e_shnum);
+            /// read shstrtab
+            in.seekg(shdr[ehdr.e_shstrndx].sh_offset,ios::beg);
+            char shstrtab[shdr[ehdr.e_shstrndx].sh_size];
+            char *names = shstrtab;
+            in.read(shstrtab, shdr[ehdr.e_shstrndx].sh_size);
+
+            for(shnum = 0; shnum < ehdr.e_shnum; shnum++)
+            {
+                    names=shstrtab+shdr[shnum].sh_name;
+                    if(!strcmp(names,".text")){
+                        textSectionAddress = shdr[shnum].sh_addr;
+                        textSectionSize= shdr[shnum].sh_size;
+                    }
+                    //printf("%x\t%lx\t%lx\t%lx\t%s \n",shdr[shnum].sh_type,shdr[shnum].sh_addr,shdr[shnum].sh_offset,shdr[shnum].sh_size,names);
+            }
+
+    }
+    bool checkIfAddressInTextRegion(long long address){
+        readSection();
+        printf("** textSectionAddress %llx,textsectionSize %llx\n", this->textSectionAddress,this->textSectionSize);
+        if(address < this->textSectionAddress || address >= this->textSectionAddress + this->textSectionSize){
+            return false;
+        }
+        return true;
+    }
+};
 
 class disasmClass{
     public:
     csh cshandle = 0;
     map<long long, instruction1> instructions;
     //// diasm
-    void print_instruction(long long addr, instruction1 *in, const char *module)
+    void init (pid_t childPid,long long textSectionStartAddress,long long textSectionSize){
+        if (cs_open(CS_ARCH_X86, CS_MODE_64, &cshandle) != CS_ERR_OK){
+
+        }
+        for(long long addr = textSectionStartAddress;addr < textSectionStartAddress + textSectionSize;){
+              int curInstrSize = disassemble(childPid,addr);
+                addr+=curInstrSize;
+        }
+        cs_close(&cshandle);
+    }
+    void print_instruction(long long addr, instruction1 *in)
     {
         int i;
         char bytes[128] = "";
@@ -30,13 +112,26 @@ class disasmClass{
         }
     }
 
-    int disassemble(pid_t proc, unsigned long long rip, const char *module)
+    
+    int getDisasInstr(unsigned long long rip){
+        unsigned long long ptr = rip;
+        map<long long, instruction1>::iterator mi; // from memory addr to instruction
+        if ((mi = instructions.find(rip)) != instructions.end())
+        {
+            print_instruction(rip, &mi->second);
+            return instructions[rip].size;
+        }
+        return -1;
+
+    }
+    int disassemble(pid_t proc, unsigned long long rip)
     {
         int count;
         char buf[64] = {0};
         unsigned long long ptr = rip;
         cs_insn *insn;
         map<long long, instruction1>::iterator mi; // from memory addr to instruction
+
 
 
         for (ptr = rip; ptr < rip + sizeof(buf); ptr += PEEKSIZE)
@@ -51,11 +146,13 @@ class disasmClass{
             memcpy(&buf[ptr - rip], &peek, PEEKSIZE);
         }
 
+        /*
         if (ptr == rip)
         {
-            print_instruction(rip, NULL, module);
+            print_instruction(rip, NULL);
             return -1;
         }
+        */
 
         if ((count = cs_disasm(cshandle, (uint8_t *)buf, rip - ptr, rip, 0, &insn)) > 0)
         {
@@ -72,33 +169,23 @@ class disasmClass{
             cs_free(insn, count);
         }
 
-        if ((mi = instructions.find(rip)) != instructions.end())
-        {
-            print_instruction(rip, &mi->second, module);
-        }
-        else
-        {
-            print_instruction(rip, NULL, module);
-        }
 
         return instructions[rip].size;
     }
-    bool disasm(unsigned long long address,int childPid,int numOfInstr)
+    bool disasm(unsigned long long address,pid_t childPid,int numOfInstr,elfClass &elfClassObj)
     {
+
+        if(!elfClassObj.checkIfAddressInTextRegion(address)){
+            return false;
+        }
         int wait_status;
         ////////// only to show which library current is in
         map<range_t, map_entry_t> m;
         map<range_t, map_entry_t>::iterator mi;
 
-        if (cs_open(CS_ARCH_X86, CS_MODE_64, &cshandle) != CS_ERR_OK)
-            return false;
 
-        if (load_maps(childPid, m) > 0)
-        {
-        }
+        //load_maps(childPid, m);
         unsigned long test_begin_address,test_end_address;
-
-
         for(int i=0;i<numOfInstr ;i++)
         {
             //fprintf(stderr, "0x%llx\n", regs.rip);
@@ -111,11 +198,10 @@ class disasmClass{
                 load_maps(childPid, m);
                 mi = m.find(r);
             }
-            int curInstrSize = disassemble(childPid, address, mi != m.end() ? mi->second.name.c_str() : "unknown");
+            int curInstrSize = getDisasInstr(address);
             address+=curInstrSize;
         }
 
-        cs_close(&cshandle);
         return true;
     }
 };
@@ -191,6 +277,7 @@ enum gdbState
 struct breakPointInfo{
     unsigned long long address;
     unsigned long long code;
+    breakPointInfo(){}
     breakPointInfo(unsigned long address , unsigned long code){
         this->address  = address;
         this->code = code;
@@ -200,8 +287,13 @@ class breakPointClass
 {
     public:
     vector<struct breakPointInfo> breakPointInfoList;
-    disasmClass disasmClassObj;
     bool lastStepIsBreakPoint = false;
+    long long lastStepBreakPointAddr  ;
+    
+    void init(){
+        breakPointInfoList.clear();
+        lastStepIsBreakPoint = false;
+    }
     
     void setBreakPoint(unsigned long long address,pid_t childPid){
         printf("** set break point address = 0x%llx\n", address);
@@ -209,7 +301,7 @@ class breakPointClass
 		unsigned long long code;
 
 		code = ptrace(PTRACE_PEEKTEXT, childPid, address, 0);
-		dump_code(address , code);
+		//dump_code(address , code);
 		/* set break point */
 		if(ptrace(PTRACE_POKETEXT, childPid, address, (code & 0xffffffffffffff00) | 0xcc) != 0)
 			perror("ptrace(POKETEXT)");
@@ -222,24 +314,19 @@ class breakPointClass
         }
 
 	}
-    void handleBreakPoint(user_regs_struct &cur_user_regs_struct,breakPointInfo& breakPointInfoObj,pid_t childPid){
+    void contHandleBreakPoint(disasmClass& disasmClassObj,user_regs_struct &cur_user_regs_struct,breakPointInfo& breakPointInfoObj,pid_t childPid){
+        restoreBreakPoint2OriginCode(childPid,breakPointInfoObj.address);
         printf("** breakpoint ");
         /* restore original context*/
-        if(ptrace(PTRACE_POKETEXT, childPid, breakPointInfoObj.address, breakPointInfoObj.code) != 0)
-            perror("ptrace(POKETEXT)");
-        disasmClassObj.disasm(breakPointInfoObj.address,childPid,1);
+
+        lastStepBreakPointAddr = breakPointInfoObj.address;
+
+        disasmClassObj.getDisasInstr(breakPointInfoObj.address);
         /* restore rip*/
         cur_user_regs_struct.rip = cur_user_regs_struct.rip-1;
         if(ptrace(PTRACE_SETREGS, childPid, 0, &cur_user_regs_struct) != 0) perror("ptrace(SETREGS)");
     }
-    bool checkAddressIsBreakPoint(long long address,pid_t childPid){
-        for(auto& breakPoint:breakPointInfoList){
-            if(address == breakPoint.address){
-                return true;
-            }
-        }
-    }
-    void checkIFEncountBreakPoint(int status,pid_t childPid) {
+    void contCheckIFEncountBreakPoint(disasmClass& disasmClassObj,int status,pid_t childPid) {
         lastStepIsBreakPoint = false;
         if(!WIFSTOPPED(status)) return;
         //printf("** check if encountBreakpoint %d \n",childPid);
@@ -257,106 +344,88 @@ class breakPointClass
             //printf("rip %llx breakpoint address  %llx\n",regs.rip , breakPoint.address);
             if(regs.rip -1 == breakPoint.address){
                 lastStepIsBreakPoint = true;
-                handleBreakPoint(regs,breakPoint,childPid);
+                contHandleBreakPoint(disasmClassObj ,regs,breakPoint,childPid);
                 break;
             }
         }
       
+    }
+    bool checkLastIsBreakPoint(){
+        return lastStepIsBreakPoint;
+    }
+    bool checkAddressIsBreakPoint(long long address,pid_t childPid){
+        for(auto& breakPoint:breakPointInfoList){
+            if(address == breakPoint.address){
+                return true;
+            }
+        }
+        return false;
+    }
+    void contIFLastIsBreakPoint(pid_t childPid){
+        if(lastStepIsBreakPoint && checkAddressIsBreakPoint(lastStepBreakPointAddr,childPid)){
+
+            printf("** contlastStepIsBreakPoint, addr %llx\n",lastStepBreakPointAddr);
+            setBreakPoint(lastStepBreakPointAddr,childPid);
+        }
+    }
+    void singleStepIFNextStepISBreakPoint(disasmClass &disasmClassObj,long long address,pid_t childPid){
+        lastStepIsBreakPoint = false;
+        if(!checkAddressIsBreakPoint(address,childPid)){
+            return;
+        }
+        lastStepBreakPointAddr = address;
+        lastStepIsBreakPoint = true;
+
+        breakPointInfo breakPointInfoObj;
+        for(auto& breakPoint:breakPointInfoList){
+            if(address == breakPoint.address){
+                breakPointInfoObj = breakPoint;
+                break;
+            }
+        }
+        printf("** singleStepIFNextStepIsBrakPoint address %llx,lastStepBreakPointAddr %llx\n",address,lastStepBreakPointAddr);
+        printf("** breakpoint ");
+        disasmClassObj.getDisasInstr(breakPointInfoObj.address);
+
+        /* restore original context*/
+        restoreBreakPoint2OriginCode(childPid,address);
+    }
+    void singleStepIFLastStepIsBreakPoint(pid_t childPid){
+        if(lastStepIsBreakPoint && checkAddressIsBreakPoint(lastStepBreakPointAddr,childPid)){
+            printf("** singlelastStepIsBreakPoint, addr %llx\n",lastStepBreakPointAddr);
+            setBreakPoint(lastStepBreakPointAddr,childPid);
+        }
     }
     void list(){
         for(int i=0;i<breakPointInfoList.size();i++){
             printf(" %d: %llx\n",i,breakPointInfoList[i].address);
         }
     }
-    void deleteBreakPoint(int index){
-        auto tmp = breakPointInfoList.begin()+index;
-        breakPointInfoList.erase(tmp);
+    void restoreBreakPoint2OriginCode(pid_t childPid,long long address ){
+        breakPointInfo breakPointInfoObj;
+        for(auto& breakPoint:breakPointInfoList){
+            if(address == breakPoint.address){
+                breakPointInfoObj = breakPoint;
+                break;
+            }
+        }
+        long long code;
+        code = ptrace(PTRACE_PEEKTEXT, childPid,breakPointInfoObj.address, 0);
+        printf("** restoreBreakPoint2OriginCode, current code %llx ,address %llx\n",code,address);
+
+		/* set break point */
+		if(ptrace(PTRACE_POKETEXT, childPid,breakPointInfoObj.address, (code & 0xffffffffffffff00) | (breakPointInfoObj.code & 0x00000000000000ff)) != 0)
+			perror("ptrace(POKETEXT)");
+
+    }
+    void deleteBreakPoint(int index,pid_t childPid){
+        auto breakPointIter= breakPointInfoList.begin()+index;
+        restoreBreakPoint2OriginCode(childPid,breakPointIter->address);
+        breakPointInfoList.erase(breakPointIter);
         printf("** breakpoint %d deleted.\n",index);
     }
 };
 
-class elfClass{
-    public:
-    long long entryPoint;
-    long long textSectionUpperAddress;
-    long long textSectionLowerAddress;
-
-    long long readEntryPoint(string filePath){
-        ifstream in(filePath,ios::in | ios::binary);
-        long long result;
-        char * resultPtr = (char*)&result;
-        in.seekg(24,ios::beg);
-        long long offset;
-        for(int i=0;i<8;i++){
-            in.get(resultPtr[i]);
-        }
-        in.close();
-        return result;
-    }
-    void readSectionHeaderStartAddr(string filePath){
-        // read section header start address
-        ifstream in(filePath,ios::in | ios::binary);
-        long long sectionHeaderStartAddr;
-        char * sectionHeaderStartAddrPtr= (char*)&sectionHeaderStartAddr;
-        in.seekg(40,ios::beg);
-        long long offset;
-        for(int i=0;i<8;i++){
-            in.get(sectionHeaderStartAddrPtr[i]);
-        }
-        
-
-        // read section header  size
-        long long sectionHeaderSize;
-        char * sectionHeaderSizePtr= (char*)&sectionHeaderSize;
-        in.seekg(0x3a,ios::beg);
-        for(int i=0;i<2;i++){
-            in.get(sectionHeaderSizePtr[i]);
-        }
-
-        // read num of section header  
-        int numOfSectionHeader;
-        char * numOfSectionHeaderPtr= (char*)&numOfSectionHeader;
-        for(int i=0;i<2;i++){
-            in.get(numOfSectionHeaderPtr[i]);
-        }
-        in.close();
-    }
-    void findTextRange(int numOfSecitonHeader,string filePath,long long sectionHeaderStartAddr, long long sectionHeaderSize){
-        ifstream in(filePath,ios::in | ios::binary);
-        long long ADDRESS;
-        long long ADDRESS_offset= 0x10;
-        char * ADDRESS_ptr= (char*)&ADDRESS;
-        long long ADDRESS_offset= 0x10;
-        char * ADDRESS_ptr= (char*)&ADDRESS;
-
-        for(int i=0;i<numOfSecitonHeader;i++){
-            
-            in.seekg(sectionHeaderStartAddr+ADDRESS_offset,ios::beg);
-            long long offset;
-            for(int i=0;i<8;i++){
-                in.get(ADDRESS_ptr[i]);
-            }
-
-        }
-
-        in.close();
-    }
-
-    void print(ifstream &in) {
-        char ch; 
-        int count = 0;     
-        while(!in.eof()) { 
-            in.get(ch); 
-            cout << setw(2) <<  (ch) << " "; 
-            count++; 
-            if(count > 16) {  // 換行 
-                cout << endl; 
-                count = 0; 
-            } 
-        } 
-        cout << endl; 
-    }
-};
 class gdb
 {
     public:
@@ -394,16 +463,20 @@ class gdb
             parseCommand(curCommand);
             if(!argsclassObj.arg_s) printf("sdb> ");
         }
+        exitGdb();
     }
     
     void dump(long long address){
+            if(!elfClassObj.checkIfAddressInTextRegion(address)){
+                return;
+            }
             long ret;
             unsigned char *ptr = (unsigned char*)&ret;
             char asciiContent[16];
             for(int i=0;i<5;i++){
                 ret = ptrace(PTRACE_PEEKTEXT, childPid, address+i*16, 0);
                 printf("%llx: %2.2x %2.2x %2.2x %2.2x %2.2x %2.2x %2.2x %2.2x", \ 
-                address , ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5], ptr[6], ptr[7]);
+                address+i*16 , ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5], ptr[6], ptr[7]);
                 for(int j=0;j<8;j++){
                     if(isprint(ptr[j])){
                         asciiContent[j] = ptr[j];
@@ -429,11 +502,13 @@ class gdb
             }
 
     }
-    void checkIFChildExit(int status){
+    bool checkIFChildExit(int status){
         if (WIFEXITED(status)) {
             printf("** child process %d terminiated normally (code %d)\n",childPid,status);
             gdbstateObj = gdbState::loaded;
+            return true;
         }
+        return false;
 
     }
     int vmmap(){
@@ -490,7 +565,7 @@ class gdb
                 printf("** gdb state need to be running\n");
                 return;
             }
-            breakPointClassObj.deleteBreakPoint(stoi(args1));
+            breakPointClassObj.deleteBreakPoint(stoi(args1),childPid);
         }
         else if(cmdName == "disasm" || cmdName == "d"){
             if(gdbstateObj != gdbState::running){
@@ -502,7 +577,7 @@ class gdb
                 return;
             }
             long long address = stoll(args1,NULL,16);
-            disasmClassObj.disasm(address,childPid,10);
+            disasmClassObj.disasm(address,childPid,10,elfClassObj);
         }
         else if(cmdName == "dump" || cmdName == "x"){
             if(gdbstateObj != gdbState::running){
@@ -584,22 +659,53 @@ class gdb
             start();
         }
     }
+
+    bool singleStep()
+    {
+        if (ptrace(PTRACE_SINGLESTEP, this->childPid, 0, 0) < 0)
+            perror("ptrace@parent");
+
+        int status;
+        waitpid(childPid, &status, 0);
+        if(checkIFChildExit(status)){
+            return true;
+        }
+        
+        struct user_regs_struct regs;
+        if(ptrace(PTRACE_GETREGS, childPid, 0, &regs) !=0){
+            perror("** ptrace_getregs\n");
+        }
+        breakPointClassObj.singleStepIFLastStepIsBreakPoint(childPid);
+
+    
+
+        breakPointClassObj.singleStepIFNextStepISBreakPoint(disasmClassObj,regs.rip,childPid);
+        return true;
+        
+    }
     void cont() {
         struct user_regs_struct regs;
         if(ptrace(PTRACE_GETREGS, childPid, 0, &regs) !=0){
             perror("** ptrace_getregs\n");
         }
-        if(breakPointClassObj.checkAddressIsBreakPoint(regs.rip,childPid)){
+        if(breakPointClassObj.checkLastIsBreakPoint()){
             
             if (ptrace(PTRACE_SINGLESTEP, this->childPid, 0, 0) < 0)
                 perror("ptrace@parent");
             
-            breakPointClassObj.setBreakPoint(regs.rip,childPid);
+            int status;
+            waitpid(childPid, &status, 0);
+            breakPointClassObj.contIFLastIsBreakPoint(childPid);
     
         }
         ptrace(PTRACE_CONT, childPid, NULL, NULL);
-        checkChildState();
-        
+        int status;
+        waitpid(childPid, &status, 0);
+        if(checkIFChildExit(status)){
+            return ;
+        }
+        breakPointClassObj.contCheckIFEncountBreakPoint(disasmClassObj,status,childPid);
+        return ;
     }
     // don't care:              -1
     // hit breakpoint before:   0
@@ -621,11 +727,13 @@ class gdb
         gdbstateObj = gdbState::loaded;
         this->childName = childName;
         printf("** program '%s' is loaded.", childName.c_str());
-        long long entryPoint = elfClassObj.readEntryPoint(childName);
+        elfClassObj.init(childName);
+        long long entryPoint = elfClassObj.readEntryPoint();
         printf(" entry point 0x%llx\n",entryPoint);
         return true;
     }
     void exitGdb(){
+        printf("Bye.\n");
         exit(0);
     }
     void getReg(string registerName){
@@ -662,7 +770,10 @@ class gdb
     }
     bool start()
     {
+
         gdbstateObj = gdbState::running;
+        breakPointClassObj.init();
+
         pid_t child;
         if ((child = fork()) < 0)
             perror("fork");
@@ -685,32 +796,11 @@ class gdb
             printf("** binary file:%s is start\n", argv[0]);
             printf("** pid %d\n",child);
             this->childPid = child;
+            disasmClassObj.init(childPid,elfClassObj.getTextSectionAddress(),elfClassObj.getTextSectionSize());
             return WIFSTOPPED(wait_status);
         }
     }
-    void checkChildState(){
-        int status;
-        waitpid(childPid, &status, 0);
-        breakPointClassObj.checkIFEncountBreakPoint(status,childPid);
-        checkIFChildExit(status);
-    }
-    bool singleStep()
-    {
-        struct user_regs_struct regs;
-        if(ptrace(PTRACE_GETREGS, childPid, 0, &regs) !=0){
-            perror("** ptrace_getregs\n");
-        }
-        printf("** singleStep,childPid:%d\n",childPid);
-        if (ptrace(PTRACE_SINGLESTEP, this->childPid, 0, 0) < 0)
-            perror("ptrace@parent");
-    
-        if(breakPointClassObj.checkAddressIsBreakPoint(regs.rip,childPid)){
-            breakPointClassObj.setBreakPoint(regs.rip,childPid);
-        }
-        checkChildState();
-        return true;
-        
-    }
+
     bool getregs(){
         struct user_regs_struct regs;
         if(ptrace(PTRACE_GETREGS, childPid, 0, &regs) == 0) {
@@ -723,10 +813,10 @@ class gdb
     }
     void print_user_regs_struct(struct user_regs_struct &regs){
         printf("RAX %llx                 RBX %llx                 RCX %llx                 RDX %llx\n\           
-                R8  %llx                 R9  %llx                 R10 %llx                 R11 %llx\n\
-                R12 %llx                 R13 %llx                 R14 %llx                 R15 %llx\n\
-                RDI %llx                 RSI %llx                 RBP %llx                 RSP %llx\n\
-                RIP %llx          FLAGS %016llx \n",\
+R8  %llx                 R9  %llx                 R10 %llx                 R11 %llx\n\
+R12 %llx                 R13 %llx                 R14 %llx                 R15 %llx\n\
+RDI %llx                 RSI %llx                 RBP %llx                 RSP %llx\n\
+RIP %llx          FLAGS %016llx \n",\
                 regs.rax,regs.rbx,regs.rcx,regs.rdx\
                 ,regs.r8,regs.r9,regs.r10,regs.r11\
                 ,regs.r12,regs.r13,regs.r14,regs.r15\
@@ -736,7 +826,7 @@ class gdb
     void setReg(string regName,unsigned long long value){
         printf("** regName:%s int value:%llx , offset:%d\n",regName.c_str(),value,registerName2Offset(regName));
         ptrace(PTRACE_POKEUSER,childPid,registerName2Offset(regName),value);
-        printf("%s = %llu (0x%llx)\n",regName.c_str(),value,value);
+        //printf("%s = %llu (0x%llx)\n",regName.c_str(),value,value);
     }
     void help(){
         printf("- break {instruction-address}: add a break point\n");
@@ -761,6 +851,9 @@ class gdb
 
 int main(int argc,char* argv[])
 {
+    setvbuf(stdout, NULL, _IONBF, 0);
+
+    setvbuf(stderr, NULL, _IONBF, 0);
     argsClass argsClassObj(argc,argv);
     gdb gdbObj(argsClassObj);
     gdbObj.iterReadInput(argsClassObj);
