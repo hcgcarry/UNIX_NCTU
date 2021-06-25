@@ -71,7 +71,7 @@ class elfClass{
     }
     bool checkIfAddressInTextRegion(long long address){
         readSection();
-        printf("** textSectionAddress %llx,textsectionSize %llx\n", this->textSectionAddress,this->textSectionSize);
+        //printf("** textSectionAddress %llx,textsectionSize %llx\n", this->textSectionAddress,this->textSectionSize);
         if(address < this->textSectionAddress || address >= this->textSectionAddress + this->textSectionSize){
             return false;
         }
@@ -175,9 +175,6 @@ class disasmClass{
     bool disasm(unsigned long long address,pid_t childPid,int numOfInstr,elfClass &elfClassObj)
     {
 
-        if(!elfClassObj.checkIfAddressInTextRegion(address)){
-            return false;
-        }
         int wait_status;
         ////////// only to show which library current is in
         map<range_t, map_entry_t> m;
@@ -186,7 +183,7 @@ class disasmClass{
 
         //load_maps(childPid, m);
         unsigned long test_begin_address,test_end_address;
-        for(int i=0;i<numOfInstr ;i++)
+        for(int i=0;i<numOfInstr && elfClassObj.checkIfAddressInTextRegion(address) ;i++)
         {
             //fprintf(stderr, "0x%llx\n", regs.rip);
             //printf("loop i:%d  address :%llu\n",i,address);
@@ -364,7 +361,7 @@ class breakPointClass
     void contIFLastIsBreakPoint(pid_t childPid){
         if(lastStepIsBreakPoint && checkAddressIsBreakPoint(lastStepBreakPointAddr,childPid)){
 
-            printf("** contlastStepIsBreakPoint, addr %llx\n",lastStepBreakPointAddr);
+            //printf("** contlastStepIsBreakPoint, addr %llx\n",lastStepBreakPointAddr);
             setBreakPoint(lastStepBreakPointAddr,childPid);
         }
     }
@@ -392,7 +389,7 @@ class breakPointClass
     }
     void singleStepIFLastStepIsBreakPoint(pid_t childPid){
         if(lastStepIsBreakPoint && checkAddressIsBreakPoint(lastStepBreakPointAddr,childPid)){
-            printf("** singlelastStepIsBreakPoint, addr %llx\n",lastStepBreakPointAddr);
+            //printf("** singlelastStepIsBreakPoint, addr %llx\n",lastStepBreakPointAddr);
             setBreakPoint(lastStepBreakPointAddr,childPid);
         }
     }
@@ -411,7 +408,7 @@ class breakPointClass
         }
         long long code;
         code = ptrace(PTRACE_PEEKTEXT, childPid,breakPointInfoObj.address, 0);
-        printf("** restoreBreakPoint2OriginCode, current code %llx ,address %llx\n",code,address);
+        //printf("** restoreBreakPoint2OriginCode, current code %llx ,address %llx\n",code,address);
 
 		/* set break point */
 		if(ptrace(PTRACE_POKETEXT, childPid,breakPointInfoObj.address, (code & 0xffffffffffffff00) | (breakPointInfoObj.code & 0x00000000000000ff)) != 0)
@@ -467,13 +464,10 @@ class gdb
     }
     
     void dump(long long address){
-            if(!elfClassObj.checkIfAddressInTextRegion(address)){
-                return;
-            }
             long ret;
             unsigned char *ptr = (unsigned char*)&ret;
             char asciiContent[16];
-            for(int i=0;i<5;i++){
+            for(int i=0;i<5 ;i++){
                 ret = ptrace(PTRACE_PEEKTEXT, childPid, address+i*16, 0);
                 printf("%llx: %2.2x %2.2x %2.2x %2.2x %2.2x %2.2x %2.2x %2.2x", \ 
                 address+i*16 , ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5], ptr[6], ptr[7]);
@@ -525,13 +519,17 @@ class gdb
                 args[nargs++] = token;
                 ptr = NULL;
             }
-            if(nargs < 6) continue;
+            if(nargs < 6){
+                m.name == "";
+            }
+            else{
+                m.name = args[5];
+            }
             if((ptr = strchr(args[0], '-')) != NULL) {
                 *ptr = '\0';
                 m.range.begin = strtol(args[0], NULL, 16);
                 m.range.end = strtol(ptr+1, NULL, 16);
             }
-            m.name = args[5];
             args[1][3] = '\0';
             string permission = string(args[1]);
             long inode= strtol(args[4], NULL, 16);
