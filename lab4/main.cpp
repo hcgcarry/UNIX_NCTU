@@ -86,10 +86,13 @@ class disasmClass{
     //// diasm
     void init (pid_t childPid,long long textSectionStartAddress,long long textSectionSize){
         if (cs_open(CS_ARCH_X86, CS_MODE_64, &cshandle) != CS_ERR_OK){
-
+            return;
         }
         for(long long addr = textSectionStartAddress;addr < textSectionStartAddress + textSectionSize;){
               int curInstrSize = disassemble(childPid,addr);
+              if(curInstrSize == 0){
+                  return;
+              }
                 addr+=curInstrSize;
         }
         cs_close(&cshandle);
@@ -116,6 +119,7 @@ class disasmClass{
     int getDisasInstr(unsigned long long rip){
         unsigned long long ptr = rip;
         map<long long, instruction1>::iterator mi; // from memory addr to instruction
+
         if ((mi = instructions.find(rip)) != instructions.end())
         {
             print_instruction(rip, &mi->second);
@@ -132,6 +136,7 @@ class disasmClass{
         cs_insn *insn;
         map<long long, instruction1>::iterator mi; // from memory addr to instruction
 
+        //printf("enter disassemble\n");
 
 
         for (ptr = rip; ptr < rip + sizeof(buf); ptr += PEEKSIZE)
@@ -165,12 +170,12 @@ class disasmClass{
                 in.opnd = insn[i].op_str;
                 memcpy(in.bytes, insn[i].bytes, insn[i].size);
                 instructions[insn[i].address] = in;
+                //print_instruction(insn[i].address, &in);
             }
             cs_free(insn, count);
+            return instructions[rip].size;
         }
-
-
-        return instructions[rip].size;
+        return 0;
     }
     bool disasm(unsigned long long address,pid_t childPid,int numOfInstr,elfClass &elfClassObj)
     {
@@ -654,6 +659,7 @@ class gdb
                 printf("** gdb state need to be loaded\n");
                 return;
             }
+            
             start();
         }
     }
@@ -769,6 +775,9 @@ class gdb
     bool start()
     {
 
+        if(gdbstateObj == gdbState::running){
+            kill(childPid, SIGKILL);
+        }
         gdbstateObj = gdbState::running;
         breakPointClassObj.init();
 
